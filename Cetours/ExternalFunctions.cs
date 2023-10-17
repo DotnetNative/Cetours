@@ -35,4 +35,11 @@ public static unsafe class ExternalFunctions
                 return false;
         return true;
     }
+
+    public static void memset(void* dset, byte c, long count)
+    {
+        var ptr = (byte*)dset;
+        for (int i = 0; i < count; i++)
+            ptr[i] = c;
+    }
 }

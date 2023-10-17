@@ -135,8 +135,8 @@ public unsafe class Modules
 
     public static int DetourPageProtectAdjustExecute(int dwOldProtect, int dwNewProtect)
     {
-        bool fOldExecute = ((dwOldProtect & DETOUR_PAGE_EXECUTE_ALL) != 0);
-        bool fNewExecute = ((dwNewProtect & DETOUR_PAGE_EXECUTE_ALL) != 0);
+        bool fOldExecute = (dwOldProtect & DETOUR_PAGE_EXECUTE_ALL) != 0;
+        bool fNewExecute = (dwNewProtect & DETOUR_PAGE_EXECUTE_ALL) != 0;
 
         if (fOldExecute && !fNewExecute)
         {
