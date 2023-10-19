@@ -192,15 +192,24 @@ public static unsafe class Detours
         byte* pbJmpSrc = pbCode + 6;
         *pbCode++ = 0xff;
         *pbCode++ = 0x25;
-        *(*(int**)pbCode)++ = (int)((byte*)ppbJmpVal - pbJmpSrc);
+
+        int** alt = (int**)&pbCode;
+        **alt = (int)((byte*)ppbJmpVal - pbJmpSrc);
+        (*alt)++;
+
         return pbCode;
     }
+
 
     public static byte* detour_gen_jmp_immediate(byte* pbCode, byte* pbJmpVal)
     {
         byte* pbJmpSrc = pbCode + 5;
         *pbCode++ = 0xE9;
-        *(*(int**)pbCode)++ = (int)(pbJmpVal - pbJmpSrc);
+
+        int** alt = (int**)&pbCode;
+        **alt = (int)(pbJmpVal - pbJmpSrc);
+        (*alt)++;
+
         return pbCode;
     }
 
@@ -394,7 +403,7 @@ public static unsafe class Detours
             byte* pbOp = pbSrc;
             int lExtra = 0;
 
-            pbSrc = (byte*)DetourCopyInstruction(pbTrampoline, (void**)&pbPool, pbSrc, null, &lExtra);
+            pbSrc = (byte*)Disasm.DetourCopyInstruction(pbTrampoline, (void**)&pbPool, pbSrc, null, &lExtra);
             pbTrampoline += (pbSrc - pbOp) + lExtra;
             cbTarget = (uint)(pbSrc - pbTarget);
             ((_DETOUR_ALIGN*)(pTrampoline->rAlign + nAlign))->obTarget = (byte)cbTarget;
@@ -509,10 +518,91 @@ public static unsafe class Detours
         }
     }
 
+    public static void* DetourCodeFromPointer(void* pPointer, void** ppGlobals)
+    {
+        return detour_skip_jmp((byte*)pPointer, ppGlobals);
+    }
+
+    static bool detour_is_imported(byte* pbCode, byte* pbAddress)
+    {
+        MEMORY_BASIC_INFORMATION mbi;
+        VirtualQuery((byte*)pbCode, &mbi, sizeof(MEMORY_BASIC_INFORMATION));
+        try
+        {
+            IMAGE_DOS_HEADER* pDosHeader = (IMAGE_DOS_HEADER*)mbi.AllocationBase;
+            if (pDosHeader->e_magic != IMAGE_DOS_SIGNATURE)
+            {
+                return false;
+            }
+
+            IMAGE_NT_HEADERS* pNtHeader = (IMAGE_NT_HEADERS*)((byte*)pDosHeader +
+                pDosHeader->e_lfanew);
+            if (pNtHeader->Signature != IMAGE_NT_SIGNATURE)
+            {
+                return false;
+            }
+
+            if (pbAddress >= ((byte*)pDosHeader +
+                ((IMAGE_DATA_DIRECTORY*)(&pNtHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IAT]))->VirtualAddress) &&
+                pbAddress < ((byte*)pDosHeader +
+                    ((IMAGE_DATA_DIRECTORY*)&pNtHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IAT])->VirtualAddress +
+                    ((IMAGE_DATA_DIRECTORY*)&pNtHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IAT])->Size))
+            {
+                return true;
+            }
+        }
+        catch { }
+        return false;
+    }
+
+    public static byte* detour_skip_jmp(byte* pbCode, void** ppGlobals)
+    {
+        if (pbCode == null)
+        {
+            return null;
+        }
+        if (ppGlobals != null)
+        {
+            *ppGlobals = null;
+        }
+
+        if (pbCode[0] == 0xff && pbCode[1] == 0x25)
+        {
+            byte* pbTarget = pbCode + 6 + *(int*)&pbCode[2];
+            if (detour_is_imported(pbCode, pbTarget))
+            {
+                byte* pbNew = *(byte**)pbTarget;
+                pbCode = pbNew;
+            }
+        }
+
+        if (pbCode[0] == 0xeb)
+        {
+            byte* pbNew = pbCode + 2 + *(byte*)&pbCode[1];
+            pbCode = pbNew;
+
+            if (pbCode[0] == 0xff && pbCode[1] == 0x25)
+            {
+                byte* pbTarget = pbCode + 6 + *(int*)&pbCode[2];
+                if (detour_is_imported(pbCode, pbTarget))
+                {
+                    pbNew = *(byte**)pbTarget;
+                    pbCode = pbNew;
+                }
+            }
+            else if (pbCode[0] == 0xe9)
+            {
+                pbNew = pbCode + 5 + *(int*) &pbCode[1];
+                pbCode = pbNew;
+            }
+        }
+        return pbCode;
+    }
+
     public static DETOUR_TRAMPOLINE* detour_alloc_trampoline(byte* pbTarget)
     {
-        DETOUR_TRAMPOLINE** pLo = null;
-        DETOUR_TRAMPOLINE** pHi = null;
+        DETOUR_TRAMPOLINE** pLo = (DETOUR_TRAMPOLINE**)New((nint)New(new DETOUR_TRAMPOLINE()));
+        DETOUR_TRAMPOLINE** pHi = (DETOUR_TRAMPOLINE**)New((nint)New(new DETOUR_TRAMPOLINE()));
 
         detour_find_jmp_bounds(pbTarget, pLo, pHi);
 
@@ -562,9 +652,9 @@ public static unsafe class Detours
         DETOUR_TRAMPOLINE* found_region()
         {
             pTrampoline = s_pRegion->pFree;
-            if (pTrampoline < pLo || pTrampoline > pHi)
+            //if (pTrampoline < pLo || pTrampoline > pHi)
             {
-                return null;
+            //    return null;
             }
             s_pRegion->pFree = (DETOUR_TRAMPOLINE*)pTrampoline->pbRemain;
             memset(pTrampoline, 0xcc, sizeof(DETOUR_TRAMPOLINE));
@@ -610,12 +700,20 @@ public static unsafe class Detours
 
     public static nuint detour_2gb_below(nuint address)
     {
-        return (address > (nuint)0x7ff80000) ? address - 0x7ff80000 : 0x80000;
+        bool a = address > 0x7ff80000;
+
+        nuint b = a ? (address - 0x7ff80000) : 0x80000;
+
+        return b;
     }
 
     public static nuint detour_2gb_above(nuint address)
     {
-        return (address < (nuint)0xffffffff80000000) ? address + 0x7ff80000 : (nuint)0xfffffffffff80000;
+        bool a = address < 0xffffffff80000000;
+
+        nuint b = (nuint)(a ? (address + 0x7ff80000) : 0xfffffffffff80000);
+
+        return b;
     }
 
     public static bool detour_does_code_end_function(byte* pbCode)
@@ -784,8 +882,11 @@ public static unsafe class Detours
 
     static void* detour_alloc_region_from_hi(byte* pbLo, byte* pbHi)
     {
-        byte* pbTry = detour_alloc_round_down_to_region(pbHi - DETOUR_REGION_SIZE);
+        return (void*)Marshal.AllocCoTaskMem((int)DETOUR_REGION_SIZE);
 
+        //byte* pbTry = detour_alloc_round_down_to_region(pbHi - DETOUR_REGION_SIZE);
+
+        /*
         for (; pbTry > pbLo;)
         {
             MEMORY_BASIC_INFORMATION mbi = new();
@@ -820,6 +921,7 @@ public static unsafe class Detours
                 pbTry = detour_alloc_round_down_to_region((byte*)mbi.AllocationBase - DETOUR_REGION_SIZE);
             }
         }
+        */
         return null;
     }
 

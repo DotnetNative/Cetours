@@ -93,7 +93,8 @@ public unsafe class Defines
         SHRT_MIN = -32768,
         SHRT_MAX = 32767,
         LONG_MIN = -2147483647 - 1,
-        LONG_MAX = 2147483647
+        LONG_MAX = 2147483647,
+        IMAGE_DIRECTORY_ENTRY_IAT = 12
         ;
     public static byte[] DETOUR_STR_BYTES = Encoding.ASCII.GetBytes(".detour\0");
     public static byte* DETOUR_STR_BYTES_PTR = AllocFrom(DETOUR_STR_BYTES);
