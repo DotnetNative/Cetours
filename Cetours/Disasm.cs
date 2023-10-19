@@ -38,6 +38,7 @@ public static unsafe class Disasm
         return oDetourDisasm.CopyInstruction((byte*)pDst, (byte*)pSrc);
     }
 
+
     public static void* CopyBytesPtr = (delegate* unmanaged<CDetourDis*, COPYENTRY*, byte*, byte*, byte*>)&CopyBytes;
     public static void* CopyBytesJumpPtr = (delegate* unmanaged<CDetourDis*, COPYENTRY*, byte*, byte*, byte*>)&CopyBytesJump;
     public static void* CopyBytesPrefixPtr = (delegate* unmanaged<CDetourDis*, COPYENTRY*, byte*, byte*, byte*>)&CopyBytesPrefix;
