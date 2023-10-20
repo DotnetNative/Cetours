@@ -1,22 +1,53 @@
-﻿using System;
+﻿using Memory;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection.Metadata;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
-public static unsafe class Interop
+#region Enum
+internal enum MemState : int
 {
-    const string user = "user32";
+    Commit = 0x1000,
+    Free = 0x10000,
+    Reserve = 0x2000
+}
+
+[Flags]
+internal enum MemProtect : int
+{
+    ZeroAccess = 0,
+    NoAccess = 1,
+    ReadOnly = 2,
+    ReadWrite = 4,
+    WriteCopy = 8,
+    Execute = 16,
+    ExecuteRead = 32,
+    ExecuteReadWrite = 64,
+    ExecuteWriteCopy = 128,
+    Guard = 256,
+    ReadWriteGuard = 260,
+    NoCache = 512
+}
+
+internal enum MemType : int
+{
+    Image = 0x1000000,
+    Mapped = 0x40000,
+    Private = 0x20000
+}
+#endregion
+internal unsafe class Interop
+{
     const string kernel = "kernel32";
 
     [DllImport(kernel, CharSet = CharSet.Unicode)] public static extern
         nint GetModuleHandle([MarshalAs(UnmanagedType.LPWStr)] string moduleName);
 
     [DllImport(kernel)] public unsafe static extern 
-        nint VirtualQuery(byte* lpAddress, MEMORY_BASIC_INFORMATION* lpBuffer, int dwLength);
+        nint VirtualQuery(void* lpAddress, MBI* lpBuffer, int dwLength);
 
     [DllImport(kernel)] public static extern 
         bool VirtualProtectEx(nint hProcess, void* dwAddress, long nSize, int flNewProtect, int* lpflOldProtect);
@@ -40,7 +71,7 @@ public static unsafe class Interop
         int ResumeThread(nint hThread);
 
     [DllImport(kernel)] public static extern 
-        int VirtualQueryEx(nint hProcess, void* lpAddress, MEMORY_BASIC_INFORMATION* lpBuffer, int dwLength);
+        int VirtualQueryEx(nint hProcess, void* lpAddress, MBI* lpBuffer, int dwLength);
 
     [DllImport(kernel)] public static extern
         bool VirtualFree(nint lpAddress, long dwSize, int dwFreeType);
@@ -49,17 +80,22 @@ public static unsafe class Interop
         void CopyMemory(void* pdst, void* psrc, int cb);
 
     [DllImport(kernel)] public static extern
-        bool VirtualProtect(void* lpAddress, long dwSize, int flNewProtect, int* lpflOldProtect);
+        bool VirtualProtect(void* lpAddress, long dwSize, MemProtect flNewProtect, MemProtect* lpflOldProtect);
 
-    [DllImport(kernel)] public static extern
-        bool GetThreadContext(nint hThread, CONTEXT* lpContext);
+    [DllImport(kernel, SetLastError = true)] public static extern
+        void* VirtualAlloc(void* lpAddress, long dwSize, MemState flAllocationType, MemProtect flProtect);
 
-    [DllImport(kernel)] public static extern
-        bool SetThreadContext(nint hThread, CONTEXT* lpContext);
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct MBI
+    {
+        public unsafe byte* BaseAddress;
+        public unsafe byte* AllocationBase;
+        public uint AllocationProtect;
+        public nint RegionSize;
+        public MemState State;
+        public MemProtect Protect;
+        public MemType Type;
 
-    [DllImport(kernel)] public static extern
-        bool FlushInstructionCache(nint hProcess, void* lpBaseAddress, long dwSize);
-
-    [DllImport(kernel)] public static extern
-        void* VirtualAlloc(void* lpAddress, long dwSize, int flAllocationType, int flProtect);
+        public override string ToString() => $"BaseAddr: {(nint)BaseAddress}, AllocAddr: {(nint)AllocationBase}, AllocProtect: {AllocationProtect}, Size: {RegionSize}, State: {State}, Protect: {Protect}, Type: {Type}";
+    }
 }
