@@ -33,7 +33,10 @@ internal static unsafe class RegionManager
                     if (error == 0x1E7 /* Attempt to access invalid address */)
                     {
                         if (direction == -1)
-                            return null;
+                        {
+                            ptr += mbi.RegionSize * direction;
+                            continue;
+                        }
 
                         direction = direction * -1;
                         ptr = (byte*)addr;
