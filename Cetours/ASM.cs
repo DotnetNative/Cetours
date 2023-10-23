@@ -9,13 +9,10 @@ using static Cetours.ASMTables;
 namespace Cetours;
 internal unsafe class ASM
 {
-    public const int JMP_X32_REL_SIZE = 5;
-
     public const byte 
         RET = 0xc3,
         NOP = 0x90,
-        JMP_NEAR_REL = 0xe9,
-        REX = 0x48;
+        JMP_NEAR_REL = 0xe9;
 
     static byte[] IATImportPattern = { 0x48, 0xff, 0x25 };
 
@@ -25,8 +22,22 @@ internal unsafe class ASM
         *p = *p;
     }
 
-    byte* p;
-    
+    byte* p;   
+
+    public void Nop(int count)
+    {
+        for (int i = 0; i < count; i++)
+            _Nop();
+    }
+
+    public const int JMP_ABSOLUTE_X64_SIZE = 13;
+    public void JmpAbsoluteX64(void* ptr)
+    {
+        _MovR9((long)ptr);
+        _JmpR9();
+    }
+
+    #region Methods
     public void Copy(void* from, int count)
     {
         MemEx.Copy(p, from, count);
@@ -62,7 +73,9 @@ internal unsafe class ASM
 
         return i;
     }
+    #endregion
 
+    #region Internal
     byte GetInstructionLength(byte[] table, byte* instruction)
     {
         byte i = table[*instruction++];
@@ -71,25 +84,27 @@ internal unsafe class ASM
 
     byte GetInstructionLength(byte* instruction) => GetInstructionLength(INSTRUCTION_TABLE, instruction);
 
+    void Write(long val)
+    {
+        *(long*)p = val;
+        p += sizeof(long);
+    }
+    #endregion
+
     #region Instructions
-    public void Jmp_X32Rel(void* to)
+    public void _MovR9(long ptr)
     {
-        byte* jumpSrc = p + JMP_X32_REL_SIZE;
-        *p++ = JMP_NEAR_REL;
-        long opcodeL = (nint)to - (nint)jumpSrc;
-        int opcodeI = (int)opcodeL;
-        *(int*)p = opcodeI;
-        p += sizeof(int);
+        *p++ = 0x49;
+        *p++ = 0xb9;
+        Write(ptr);
     }
-
-    public void Ret() => *p++ = RET;
-
-    public void Nop() => *p++ = NOP;
-
-    public void Nop(int count)
+    public void _JmpR9()
     {
-        for (int i = 0; i < count; i++)
-            Nop();
+        *p++ = 0x41;
+        *p++ = 0xff;
+        *p++ = 0xe1;
     }
+    public void _Ret() => *p++ = RET;
+    public void _Nop() => *p++ = NOP;
     #endregion
 }

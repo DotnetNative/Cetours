@@ -26,7 +26,7 @@ public static unsafe class Cetour
 
             var sasm = new ASM(*orig);
 
-            len = sasm.GetRoundedInstructionsLength(JMP_X32_REL_SIZE);
+            len = sasm.GetRoundedInstructionsLength(JMP_ABSOLUTE_X64_SIZE);
         }
 
         var reg = RegionManager.AllocRegion(*orig, 0x1000);
@@ -34,7 +34,7 @@ public static unsafe class Cetour
         {
             var asm = new ASM(reg);
             asm.Copy(*orig, len);
-            asm.Jmp_X32Rel((byte*)*orig + len);
+            asm.JmpAbsoluteX64(*orig);
         }
 
         return reg;
@@ -43,8 +43,8 @@ public static unsafe class Cetour
     public static void Attach(void* orig, void* ripped, int len)
     {
         var asm = new ASM(orig);
-        asm.Jmp_X32Rel(ripped);
-        asm.Nop(len - JMP_X32_REL_SIZE);
+        asm.JmpAbsoluteX64(ripped);
+        asm.Nop(len - JMP_ABSOLUTE_X64_SIZE);
     }
 
     public static void Detach(void* orig, void* allocated, int len)
