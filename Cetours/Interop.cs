@@ -8,7 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 #region Enum
-internal enum MemState : int
+public enum MemState : int
 {
     Commit = 0x1000,
     Free = 0x10000,
@@ -16,7 +16,7 @@ internal enum MemState : int
 }
 
 [Flags]
-internal enum MemProtect : int
+public enum MemProtect : int
 {
     ZeroAccess = 0,
     NoAccess = 1,
@@ -32,14 +32,14 @@ internal enum MemProtect : int
     NoCache = 512
 }
 
-internal enum MemType : int
+public enum MemType : int
 {
     Image = 0x1000000,
     Mapped = 0x40000,
     Private = 0x20000
 }
 #endregion
-internal unsafe class Interop
+public unsafe class Interop
 {
     const string kernel = "kernel32";
 

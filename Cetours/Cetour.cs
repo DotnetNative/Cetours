@@ -1,55 +1,53 @@
-﻿using System;
+﻿global using static Memory.MemEx;
+global using static Cetours.ASM;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using static Memory.MemEx;
-using static Cetours.ASM;
 
 namespace Cetours;
 public static unsafe class Cetour
 {
-    public static void* Create(void** orig, void* ripped, out int len)
+    public static Hook Create(void* orig, void* ripped)
     {
         RegionManager.SetRegionProtection(ripped, MemProtect.ExecuteReadWrite);
-        RegionManager.SetRegionProtection(*orig, MemProtect.ExecuteReadWrite);
+        RegionManager.SetRegionProtection(orig, MemProtect.ExecuteReadWrite);
 
+        var fasm = new ASM(orig);
+
+        if (fasm.IsJmpQwordPtr()) // Is IAT Jmp
         {
-            var fasm = new ASM(*orig);
+            var iatOpcode = fasm.GetJmpQwordPtrOpcode();
+            var innerFuncAddr = fasm.GetJmpQwordPtrAddr();
 
+            return new IATWithFreeBytes()
             {
-                if (fasm.IsIATImportJmp())
-                    *orig = (void*)fasm.GetATImportAddr();
-            }
-
-            RegionManager.SetRegionProtection(*orig, MemProtect.ExecuteReadWrite);
-
-            var sasm = new ASM(*orig);
-
-            len = sasm.GetRoundedInstructionsLength(JMP_ABSOLUTE_X64_SIZE);
+                OriginOpcode = iatOpcode,
+                Origin = orig,
+                Ripped = ripped,
+                New = (void*)innerFuncAddr
+            };
         }
-
-        var reg = RegionManager.AllocRegion(*orig, 0x1000);
-
+        else
         {
+            var sasm = new ASM(orig);
+
+            int len = sasm.GetRoundedInstructionsLength(JMP_ABSOLUTE_X64_SIZE);
+
+            var reg = RegionManager.AllocRegion(orig, 0x1000);
+
             var asm = new ASM(reg);
-            asm.Copy(*orig, len);
-            asm.JmpAbsoluteX64(*orig);
+            asm.Copy(orig, len);
+            asm.JmpAbsoluteX64(orig);
+
+            return new AllocationTrampolineHook()
+            {
+                Length = len,
+                Origin = orig,
+                Ripped = ripped,
+                New = reg,
+            };
         }
-
-        return reg;
-    }
-
-    public static void Attach(void* orig, void* ripped, int len)
-    {
-        var asm = new ASM(orig);
-        asm.JmpAbsoluteX64(ripped);
-        asm.Nop(len - JMP_ABSOLUTE_X64_SIZE);
-    }
-
-    public static void Detach(void* orig, void* allocated, int len)
-    {
-        var asm = new ASM(orig);
-        asm.Copy(allocated, len);
     }
 }

@@ -14,7 +14,7 @@ internal unsafe class ASM
         NOP = 0x90,
         JMP_NEAR_REL = 0xe9;
 
-    static byte[] IATImportPattern = { 0x48, 0xff, 0x25 };
+    static byte[] JmpQwordPtrPattern = { 0x48, 0xff, 0x25 };
 
     public ASM(void* ptr)
     {
@@ -22,7 +22,9 @@ internal unsafe class ASM
         *p = *p;
     }
 
-    byte* p;   
+    byte* p;
+
+    public byte* CurrentAddr() => p;
 
     public void Nop(int count)
     {
@@ -44,22 +46,30 @@ internal unsafe class ASM
         p += count;
     }
 
-    public bool IsNext(params byte[] bytes) => MemEx.Compare(p, bytes);
+    public bool IsNext(params byte[] bytes) => Compare(p, bytes);
 
     public void Back(int count) => p -= count;
     public void BackTo(void* ptr) => p = (byte*)ptr;
 
-    public bool IsIATImportJmp() => MemEx.Compare(p, IATImportPattern);
+    public bool IsJmpQwordPtr() => Compare(p, JmpQwordPtrPattern);
 
-    public nint GetATImportAddr()
+    public nint GetJmpQwordPtrAddr() => *(nint*)GetJmpQwordPtrPointerAddr();
+
+    public nint GetJmpQwordPtrPointerAddr()
     {
-        byte* ptr = p + 3;
-        int offset = *(int*)ptr;
+        int offset = GetJmpQwordPtrOpcode();
         var curAddr = (nint)p;
         var instructionSize = 3 + sizeof(int);
         var addr = curAddr + offset + instructionSize;
 
         return addr;
+    }
+
+    public int GetJmpQwordPtrOpcode()
+    {
+        byte* ptr = p + 3;
+        int opcode = *(int*)ptr;
+        return opcode;
     }
 
     public int GetNextInstructionLength() => GetInstructionLength(p);
@@ -89,6 +99,12 @@ internal unsafe class ASM
         *(long*)p = val;
         p += sizeof(long);
     }
+
+    void Write(int val)
+    {
+        *(int*)p = val;
+        p += sizeof(int);
+    }
     #endregion
 
     #region Instructions
@@ -106,5 +122,14 @@ internal unsafe class ASM
     }
     public void _Ret() => *p++ = RET;
     public void _Nop() => *p++ = NOP;
+
+    public const int _JMP_QWORD_PTR_SIZE = 7;
+    public void _JmpQwordPtr(int operand)
+    {
+        *p++ = 0x48;
+        *p++ = 0xff;
+        *p++ = 0x25;
+        Write(operand);
+    }
     #endregion
 }

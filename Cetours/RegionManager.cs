@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using static Interop;
 
 namespace Cetours;
-internal static unsafe class RegionManager
+public static unsafe class RegionManager
 {
     public static byte* AllocRegion(void* addr, int size)
     {
