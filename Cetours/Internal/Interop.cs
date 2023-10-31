@@ -1,11 +1,4 @@
-﻿using Memory;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection.Metadata;
-using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Runtime.InteropServices;
 
 #region Enum
 public enum MemState : int
@@ -39,50 +32,64 @@ public enum MemType : int
     Private = 0x20000
 }
 #endregion
-public unsafe class Interop
+internal unsafe class Interop
 {
     const string kernel = "kernel32";
 
-    [DllImport(kernel, CharSet = CharSet.Unicode)] public static extern
+    [DllImport(kernel, CharSet = CharSet.Unicode)]
+    public static extern
         nint GetModuleHandle([MarshalAs(UnmanagedType.LPWStr)] string moduleName);
 
-    [DllImport(kernel)] public unsafe static extern 
+    [DllImport(kernel)]
+    public unsafe static extern
         nint VirtualQuery(void* lpAddress, MBI* lpBuffer, int dwLength);
 
-    [DllImport(kernel)] public static extern 
+    [DllImport(kernel)]
+    public static extern
         bool VirtualProtectEx(nint hProcess, void* dwAddress, long nSize, int flNewProtect, int* lpflOldProtect);
 
-    [DllImport(kernel)] public static extern
+    [DllImport(kernel)]
+    public static extern
         nint GetCurrentProcess();
 
-    [DllImport(kernel)] public static extern
+    [DllImport(kernel)]
+    public static extern
         int GetCurrentThreadId();
 
-    [DllImport(kernel)] public static extern
+    [DllImport(kernel)]
+    public static extern
         nint GetCurrentThread();
 
-    [DllImport(kernel)] public static extern 
+    [DllImport(kernel)]
+    public static extern
         int GetLastError();
 
-    [DllImport(kernel)] public static extern 
+    [DllImport(kernel)]
+    public static extern
         int SuspendThread(nint hThread);
 
-    [DllImport(kernel)] public static extern 
+    [DllImport(kernel)]
+    public static extern
         int ResumeThread(nint hThread);
 
-    [DllImport(kernel)] public static extern 
+    [DllImport(kernel)]
+    public static extern
         int VirtualQueryEx(nint hProcess, void* lpAddress, MBI* lpBuffer, int dwLength);
 
-    [DllImport(kernel)] public static extern
+    [DllImport(kernel)]
+    public static extern
         bool VirtualFree(nint lpAddress, long dwSize, int dwFreeType);
 
-    [DllImport(kernel, ExactSpelling = true, EntryPoint = "RtlMoveMemory")] public static extern 
+    [DllImport(kernel, ExactSpelling = true, EntryPoint = "RtlMoveMemory")]
+    public static extern
         void CopyMemory(void* pdst, void* psrc, int cb);
 
-    [DllImport(kernel)] public static extern
+    [DllImport(kernel)]
+    public static extern
         bool VirtualProtect(void* lpAddress, long dwSize, MemProtect flNewProtect, MemProtect* lpflOldProtect);
 
-    [DllImport(kernel, SetLastError = true)] public static extern
+    [DllImport(kernel, SetLastError = true)]
+    public static extern
         void* VirtualAlloc(void* lpAddress, long dwSize, MemState flAllocationType, MemProtect flProtect);
 
     [StructLayout(LayoutKind.Sequential)]
