@@ -11,6 +11,6 @@ public class HookInnerData : ICustomJmpRegister
         this.jmpRegister = jmpRegister;
     }
 
-    Register jmpRegister = X64Registers.R12;
+    Register jmpRegister = X64Registers.RAX;
     Register ICustomJmpRegister.JmpRegister { get => jmpRegister; set => jmpRegister = value; }
 }
