@@ -1,7 +1,8 @@
 # Cetours [![NuGet](https://img.shields.io/nuget/v/Cetours.svg)](https://www.nuget.org/packages/Cetours)
 Low-level detours library for internally hooking native functions
 
-Versions:
+Versions
+------------------------------
 | Start ordinal | Framework | Description | Date |
 | ---   | ---     | ---               | ---          |
 | 1.0.4 | .net8.0 | Changed framework | Dec 2, 2023  |
