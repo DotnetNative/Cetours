@@ -10,8 +10,8 @@ public abstract unsafe class JmpRedirect
         To = (byte*)to;
     }
 
-    public byte* From { get; init; }
-    public byte* To { get; init; }
+    public readonly byte* From;
+    public readonly byte* To;
     public int Length { get; init; }
 
     public abstract void Enable();
@@ -19,16 +19,13 @@ public abstract unsafe class JmpRedirect
 
     public static JmpRedirect Create(Hook hook, void* fromV, void* toV)
     {
-        byte* from = (byte*)fromV;
-        byte* to = (byte*)toV;
+        var from = (byte*)fromV;
+        var to = (byte*)toV;
 
-        long distance = (nint)from - (nint)to;
-        bool isX32Range = distance < int.MaxValue && distance > int.MinValue;
+        var distance = (nint)from - (nint)to;
+        var isX32Range = distance < int.MaxValue && distance > int.MinValue;
 
-        if (isX32Range)
-            return new RelativeJmpRedirect(from, to);
-        else
-            return new X64RegisterAbsoluteJmpRedirect(hook.JmpRegister, from, to);
+        return isX32Range ? new RelativeJmpRedirect(from, to) : new X64RegisterAbsoluteJmpRedirect(hook.JmpRegister, from, to);
     }
 }
 
@@ -45,8 +42,8 @@ public unsafe abstract class StaticJmpRedirect : JmpRedirect
         Copy(originalBytes, from);
     }
 
-    protected byte[] originalBytes;
-    protected byte[] rippedBytes;
+    protected readonly byte[] originalBytes;
+    protected readonly byte[] rippedBytes;
 
     public override void Enable() => Copy(From, rippedBytes);
     public override void Disable() => Copy(From, rippedBytes);

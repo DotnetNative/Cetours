@@ -13,11 +13,12 @@ public unsafe abstract class Hook
         Data = data;
     }
 
-    public void* Origin;
-    public void* Ripped;
+    public readonly void* Origin;
+    public readonly void* Ripped;
+    public readonly HookInnerData Data;
+
     public void* New;
 
-    public HookInnerData Data;
     public Register JmpRegister => (Data as ICustomJmpRegister).JmpRegister;
 
     public abstract void Attach();
@@ -31,7 +32,7 @@ public unsafe class RedirectHook : Hook
         Redirect = JmpRedirect.Create(this, Origin, Ripped);
     }
 
-    public JmpRedirect Redirect;
+    public readonly JmpRedirect Redirect;
 
     public override void Attach() => Redirect.Enable();
     public override void Detach() => Redirect.Disable();
@@ -54,8 +55,8 @@ public unsafe class AllocationTrampolineHook : Hook
         NewToOrigRedirect.Enable();
     }
 
-    public JmpRedirect OrigToNewRedirect, NewToRippedRedirect, NewToOrigRedirect;
-    public void* RippedMirror;
+    public readonly JmpRedirect OrigToNewRedirect, NewToRippedRedirect, NewToOrigRedirect;
+    public readonly void* RippedMirror;
 
     public override void Attach() => OrigToNewRedirect.Enable();
     public override void Detach() => OrigToNewRedirect.Disable();

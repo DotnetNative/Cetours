@@ -49,7 +49,7 @@ internal static unsafe class RegionManager
 
         var ptr = (byte*)addr;
 
-        MBI* mbi = stackalloc MBI[1];
+        var mbi = stackalloc MBI[1];
         while (true)
         {
             if (VirtualQuery(ptr, mbi, sizeof(MBI)) == 0)
@@ -109,7 +109,7 @@ internal static unsafe class RegionManager
     public static MemProtect SetRegionProtection(void* addr, MemProtect newProtect)
     {
         MemProtect oldProtect;
-        int size = GetRegionSize(addr);
+        var size = GetRegionSize(addr);
         VirtualProtect(addr, size, newProtect, &oldProtect);
 
         return oldProtect;

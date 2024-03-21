@@ -188,8 +188,3 @@ internal unsafe partial class ASM
     }
     #endregion
 }
-
-partial class ASM
-{
-
-}
