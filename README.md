@@ -1,6 +1,12 @@
 # Cetours [![NuGet](https://img.shields.io/nuget/v/Cetours.svg)](https://www.nuget.org/packages/Cetours)
 Low-level detours library for internally hooking native functions
 
+Used Libraries
+------------------------------
+**DotnetNativeBase** [![NuGet](https://img.shields.io/nuget/v/DotnetNativeBase.svg)](https://www.nuget.org/packages/DotnetNativeBase) \
+**Yotic.Memory.Extensions** [![NuGet](https://img.shields.io/nuget/v/Yotic.Memory.Extensions.svg)](https://www.nuget.org/packages/Yotic.Memory.Extensions) \
+**Memory.Manipulation** [![NuGet](https://img.shields.io/nuget/v/Memory.Manipulation.svg)](https://www.nuget.org/packages/Memory.Manipulation)
+
 Versions
 ------------------------------
 | Start ordinal | Framework | Description | Date |
