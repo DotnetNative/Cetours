@@ -1,7 +1,4 @@
-﻿using Memory;
-using static Cetours.Assembler.ASMTables;
-
-namespace Cetours.Assembler;
+﻿namespace Cetours.Assembler;
 internal unsafe partial class ASM
 {
     public const byte
@@ -9,15 +6,15 @@ internal unsafe partial class ASM
         NOP = 0x90,
         JMP_X32_REL_SIZE = 5;
 
-    public ASM(void* ptr)
+    public ASM(pointer ptr)
     {
-        p = (byte*)ptr;
-        *p = *p;
+        pointer = ptr;
+        *(byte*)pointer = pointer[0];
     }
 
-    byte* p;
+    pointer pointer;
 
-    public byte* CurrentAddr() => p;
+    public byte* CurrentAddr() => pointer;
 
     public void Nop(int count)
     {
@@ -25,57 +22,57 @@ internal unsafe partial class ASM
             _Nop();
     }
 
-    public void JmpRelativeX32(void* from, void* to) => _JmpRel(from, to);
+    public void JmpRelativeX32(pointer from, pointer to) => _JmpRel(from, to);
 
-    public void JmpRelativeX32(void* to) => _JmpRel(to);
+    public void JmpRelativeX32(pointer to) => _JmpRel(to);
 
-    public static int GetSizeOfJmpAbsoluteX64(Register register) => register.IsExtended ? 13 : 12;
-    public void JmpAbsoluteX64(void* to)
+    public static int GetSizeOfJmpAbsoluteX64(X64Register register) => register.IsExtended ? 13 : 12;
+    public void JmpAbsoluteX64(pointer to)
     {
-        _Mov(X64Registers.R12, (long)to);
+        _Mov(X64Registers.R12, to);
         _JmpAbs(X64Registers.R12);
     }
 
-    public void JmpAbsoluteX64(Register register, void* to)
+    public void JmpAbsoluteX64(X64Register register, pointer to)
     {
-        _Mov(register, (long)to);
+        _Mov(register, to);
         _JmpAbs(register);
     }
 
     #region Methods
-    public void Copy(void* from, int count)
+    public void Copy(pointer from, int count)
     {
-        MemEx.Copy(p, from, count);
-        p += count;
+        MemEx.Copy(pointer, from, count);
+        pointer += count;
     }
 
-    public bool IsNext(params byte[] bytes) => Compare(p, bytes);
+    public bool IsNext(params byte[] bytes) => Compare(pointer, bytes);
 
-    public void Back(int count) => p -= count;
-    public void BackTo(void* ptr) => p = (byte*)ptr;
+    public void Back(int count) => pointer -= count;
+    public void BackTo(void* ptr) => pointer = (byte*)ptr;
 
-    public int GetNextInstructionLength() => GetInstructionLength(p);
+    public int GetNextInstructionLength() => GetInstructionLength(pointer);
     public int GetRoundedInstructionsLength(int len)
     {
         int i = 0;
 
         while (i < len)
-            i += GetInstructionLength(p + i);
+            i += GetInstructionLength(pointer + i);
 
         return i;
     }
 
     #region JmpREXWQwordPtr
-    static byte[] JmpREXWQwordPtrPattern = { 0x48, 0xff, 0x25 };
+    static byte[] JmpREXWQwordPtrPattern = [0x48, 0xff, 0x25];
 
-    public bool IsJmpREXWQwordPtr() => Compare(p, JmpREXWQwordPtrPattern);
+    public bool IsJmpREXWQwordPtr() => Compare(pointer, JmpREXWQwordPtrPattern);
 
-    public nint GetJmpREXWQwordPtrAddr() => *(nint*)GetJmpREXWQwordPtrPointerAddr();
+    public pointer GetJmpREXWQwordPtrAddr() => *(pointer*)GetJmpREXWQwordPtrPointerAddr();
 
     public nint GetJmpREXWQwordPtrPointerAddr()
     {
         int offset = GetJmpREXWQwordPtrOpcode();
-        var curAddr = (nint)p;
+        var curAddr = (nint)pointer;
         var instructionSize = 3 + sizeof(int);
         var addr = curAddr + offset + instructionSize;
 
@@ -84,7 +81,7 @@ internal unsafe partial class ASM
 
     public int GetJmpREXWQwordPtrOpcode()
     {
-        byte* ptr = p + 3;
+        var ptr = pointer + 3;
         int opcode = *(int*)ptr;
         return opcode;
     }
@@ -93,14 +90,14 @@ internal unsafe partial class ASM
     #region JmpQwordPtr
     static byte[] JmpQwordPtrPattern = { 0xff, 0x25 };
 
-    public bool IsJmpQwordPtr() => Compare(p, JmpQwordPtrPattern);
+    public bool IsJmpQwordPtr() => Compare(pointer, JmpQwordPtrPattern);
 
     public nint GetJmpQwordPtrAddr() => *(nint*)GetJmpQwordPtrPointerAddr();
 
     public nint GetJmpQwordPtrPointerAddr()
     {
         int offset = GetJmpQwordPtrOpcode();
-        var curAddr = (nint)p;
+        var curAddr = (nint)pointer;
         var instructionSize = 2 + sizeof(int);
         var addr = curAddr + offset + instructionSize;
 
@@ -109,8 +106,7 @@ internal unsafe partial class ASM
 
     public int GetJmpQwordPtrOpcode()
     {
-        byte* ptr = p + 2;
-        int opcode = *(int*)ptr;
+        int opcode = *(int*)(pointer + 2);
         return opcode;
     }
     #endregion
@@ -128,62 +124,78 @@ internal unsafe partial class ASM
 
     void Write(long val)
     {
-        *(long*)p = val;
-        p += sizeof(long);
+        *(long*)pointer = val;
+        pointer += sizeof(long);
     }
 
     void Write(int val)
     {
-        *(int*)p = val;
-        p += sizeof(int);
+        *(int*)pointer = val;
+        pointer += sizeof(int);
     }
     #endregion
 
     #region Instructions
-    public void _Mov(Register register, long ptr)
+    public void _Mov(X64Register register, long ptr)
     {
-        *p++ = (byte)(register.IsExtended ? 0x49 : 0x48);
-        *p++ = register.MovOC;
+        *(byte*)pointer = (byte)(register.IsExtended ? 0x49 : 0x48);
+        pointer++;
+        *(byte*)pointer = register.MovOC;
+        pointer++;
         Write(ptr);
     }
 
-    public void _JmpAbs(Register register)
+    public void _JmpAbs(X64Register register)
     {
         if (register.IsExtended)
-            *p++ = 0x41;
-        *p++ = 0xff;
-        *p++ = register.JmpOC;
+        {
+            *(byte*)pointer = 0x41;
+            pointer++;
+        }
+        *(byte*)pointer = 0xff;
+        pointer++;
+        *(byte*)pointer++ = register.JmpOC;
+        pointer++;
     }
 
     public void _JmpRel(void* to)
     {
-        *p++ = 0xe9;
-        Write((int)((byte*)to - (p + JMP_X32_REL_SIZE)));
+        *(byte*)pointer = 0xe9;
+        pointer++;
+        Write((int)((byte*)to - ((byte*)pointer + JMP_X32_REL_SIZE)));
     }
 
     public void _JmpRel(void* from, void* to)
     {
-        *p++ = 0xe9;
+        *(byte*)pointer = 0xe9;
+        pointer++;
         Write((int)((byte*)to - ((byte*)from + JMP_X32_REL_SIZE)));
     }
 
-    public void _Ret() => *p++ = RET;
-    public void _Nop() => *p++ = NOP;
+    public void _Ret()
+    {
+        *(byte*)pointer = RET;
+        pointer++;
+    }
+    public void _Nop()
+    {
+        *(byte*)pointer = NOP;
+        pointer++;
+    }
 
     public const int _JMP_REXW_QWORD_PTR_SIZE = 7;
     public void _JmpREXWQwordPtr(int operand)
     {
-        *p++ = 0x48;
-        *p++ = 0xff;
-        *p++ = 0x25;
+        MemEx.Copy(pointer, [0x48, 0xff, 0x25]);
+        pointer += 3;
         Write(operand);
     }
 
     public const int _JMP_QWORD_PTR_SIZE = 6;
     public void _JmpQwordPtr(int operand)
     {
-        *p++ = 0xff;
-        *p++ = 0x25;
+        MemEx.Copy(pointer, [0xff, 0x25]);
+        pointer += 2;
         Write(operand);
     }
     #endregion

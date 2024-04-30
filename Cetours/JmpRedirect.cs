@@ -1,38 +1,30 @@
-﻿using Cetours.Assembler;
-using Cetours.Hooking;
-
-namespace Cetours;
+﻿namespace Cetours;
 public abstract unsafe class JmpRedirect
 {
-    public JmpRedirect(void* from, void* to)
+    public JmpRedirect(pointer from, pointer to)
     {
-        From = (byte*)from;
-        To = (byte*)to;
+        From = from;
+        To = to;
     }
 
-    public readonly byte* From;
-    public readonly byte* To;
+    public readonly pointer From;
+    public readonly pointer To;
     public int Length { get; init; }
 
     public abstract void Enable();
     public abstract void Disable();
 
-    public static JmpRedirect Create(Hook hook, void* fromV, void* toV)
+    public static JmpRedirect Create(Hook hook, pointer from, pointer to)
     {
-        var from = (byte*)fromV;
-        var to = (byte*)toV;
+        var isX32Range = (from - to) < uint.MaxValue;
 
-        var distance = (nint)from - (nint)to;
-        var isX32Range = distance < int.MaxValue && distance > int.MinValue;
-
-        return isX32Range ? new RelativeJmpRedirect(from, to) : new X64RegisterAbsoluteJmpRedirect(hook.JmpRegister, from, to);
+        return isX32Range ? new RelativeJmpRedirect(from, to) : new X64RegisterAbsoluteJmpRedirect(hook.Data.JmpRegister, from, to);
     }
 }
 
-
 public unsafe abstract class StaticJmpRedirect : JmpRedirect
 {
-    public StaticJmpRedirect(void* from, void* to, int length) : base(from, to)
+    public StaticJmpRedirect(pointer from, pointer to, int length) : base(from, to)
     {
         Length = length;
 
@@ -51,7 +43,7 @@ public unsafe abstract class StaticJmpRedirect : JmpRedirect
 
 public unsafe class X64RegisterAbsoluteJmpRedirect : StaticJmpRedirect
 {
-    public X64RegisterAbsoluteJmpRedirect(Register register, void* from, void* to) : base(from, to, new ASM(from).GetRoundedInstructionsLength(GetSizeOfJmpAbsoluteX64(register)))
+    public X64RegisterAbsoluteJmpRedirect(X64Register register, pointer from, pointer to) : base(from, to, new ASM(from).GetRoundedInstructionsLength(GetSizeOfJmpAbsoluteX64(register)))
     {
         fixed (byte* ptr = rippedBytes)
         {
@@ -63,7 +55,7 @@ public unsafe class X64RegisterAbsoluteJmpRedirect : StaticJmpRedirect
 
 public unsafe class RelativeJmpRedirect : StaticJmpRedirect
 {
-    public RelativeJmpRedirect(void* from, void* to) : base(from, to, new ASM(from).GetRoundedInstructionsLength(JMP_X32_REL_SIZE))
+    public RelativeJmpRedirect(pointer from, pointer to) : base(from, to, new ASM(from).GetRoundedInstructionsLength(JMP_X32_REL_SIZE))
     {
         fixed (byte* ptr = rippedBytes)
         {

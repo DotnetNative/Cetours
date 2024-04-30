@@ -1,38 +1,54 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <Title>$(AssemblyName)</Title>
-    <Version>1.0.4</Version>
+    <Version>1.0.5</Version>
     <Authors>Yotic</Authors>
-    <Company />
+    <Company>Yotic</Company>	  
     <Description>Low-level detours library for internally hooking native functions</Description>
-    <PackageReadmeFile>Pack.md</PackageReadmeFile>
+	<PackageReadmeFile>PACK.md</PackageReadmeFile>
+	<IncludeContentInPack>true</IncludeContentInPack>
+	<PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
+	<PackageIcon>DotnetNativeLogo.png</PackageIcon>
     <RepositoryUrl>https://github.com/Yoticc/Cetours</RepositoryUrl>
     <PackageTags>naot detours hooking</PackageTags>
-    <Platforms>AnyCPU;x64</Platforms>
+    <Platforms>x64</Platforms>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
   </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <Optimize>False</Optimize>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <Optimize>False</Optimize>
-  </PropertyGroup>
-
   <ItemGroup>
-    <PackageReference Include="Yotic.Memory.Extensions" Version="1.0.4" />
+    <PackageReference Include="DotnetNativeBase" Version="1.0.7" />
+    <PackageReference Include="Memory.Manipulation" Version="1.0.1" />
+    <PackageReference Include="Yotic.Memory.Extensions" Version="2.0.4" />
   </ItemGroup>
-
   <ItemGroup>
-    <None Update="Pack.md">
+     <None Include="..\..\..\..\..\..\DotnetNativeLogo.png">
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
+      <Visible>False</Visible>        
+    </None>
+    <None Include="PACK.md">
+      <Pack>true</Pack>
+      <PackagePath></PackagePath>
+      <Visible>False</Visible>
+    </None>
+    <None Include="..\LICENSE.txt">
+      <Pack>true</Pack>
+      <PackagePath></PackagePath>
+      <Visible>False</Visible>
     </None>
   </ItemGroup>
-
+  <ItemGroup>
+    <Using Include="Cetours.Assembler" />
+    <Using Include="Cetours.Assembler.ASMTables">
+      <Static>True</Static>
+    </Using>
+    <Using Include="Cetours.Hooking" />
+    <Using Include="Memory" />
+    <Using Include="Memory.MemEx">
+      <Static>True</Static>
+    </Using>
+  </ItemGroup>
 </Project>

@@ -1,16 +1,12 @@
-﻿using Cetours.Assembler;
-using Cetours.Hooking.Interfaces;
-
-namespace Cetours.Hooking;
-public class HookInnerData : ICustomJmpRegister
+﻿namespace Cetours.Hooking;
+public sealed class HookInnerData
 {
     public HookInnerData() { }
 
-    public HookInnerData(Register jmpRegister)
+    public HookInnerData(X64Register jmpRegister)
     {
-        this.jmpRegister = jmpRegister;
+        JmpRegister = jmpRegister;
     }
 
-    Register jmpRegister = X64Registers.RAX;
-    Register ICustomJmpRegister.JmpRegister { get => jmpRegister; set => jmpRegister = value; }
+    public readonly X64Register JmpRegister = X64Registers.RAX;
 }
